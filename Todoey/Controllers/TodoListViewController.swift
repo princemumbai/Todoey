@@ -12,13 +12,21 @@ import CoreData
 class TodoListViewController: UITableViewController {
 
     var itemArray = [Item]()
+    var catInd = 0
+    var selectedCategory : Category?{
+        didSet{
+            catInd = 1
+            loadItems()
+        }
+    }
+    
     //let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     override func viewDidLoad() {
         super.viewDidLoad()
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
  
-        loadItems()
+       // loadItems()
     }
 
     @IBOutlet weak var searchBar: UISearchBar!
@@ -69,6 +77,7 @@ class TodoListViewController: UITableViewController {
             let newItem = Item(context: self.context)
             newItem.title = textField.text!
             newItem.done = false
+            newItem.parentCategory = self.selectedCategory
             self.itemArray.append(newItem)
             self.saveItems()
 
@@ -94,8 +103,12 @@ class TodoListViewController: UITableViewController {
     }
     
     func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
-
+        if catInd == 1 {
+            request.predicate = NSPredicate(format: "parentCategory.name CONTAINS[cd] %@", selectedCategory!.name!)
+            catInd = 0
+        }
         do {
+            
             itemArray = try context.fetch(request)
         } catch {
             print("Error fetching data from context \(error)")
@@ -113,6 +126,7 @@ extension TodoListViewController: UISearchBarDelegate {
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if (searchBar.text?.count == 0) {
+            catInd = 1
             loadItems()
             DispatchQueue.main.async {
                 searchBar.resignFirstResponder()
